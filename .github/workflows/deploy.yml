@@ -30,12 +30,19 @@ jobs:
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
+      # Create a temporary 'public' folder and move everything into it
+      - name: Prepare Deployment
+        run: |
+          mkdir public
+          cp -r website/* public/
+          cp -r assets public/
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # This is the crucial part: it tells GitHub to grab the "website" folder
-          path: './website'
+          # Point this to the new 'public' folder we just created
+          path: './public'
           
       - name: Deploy to GitHub Pages
         id: deployment
