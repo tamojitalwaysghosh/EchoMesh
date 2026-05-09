@@ -31,7 +31,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context.go('/onboarding');
       return;
     }
-    if (profile == null || profile.username.trim().isEmpty || profile.meshId.isEmpty) {
+    if (profile == null ||
+        profile.username.trim().isEmpty ||
+        profile.meshId.isEmpty) {
       context.go('/profile-setup');
       return;
     }
@@ -47,20 +49,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.accent.withValues(alpha: 0.5), width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.accent.withValues(alpha: 0.25),
-                    blurRadius: 28,
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.accent.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.accent.withValues(alpha: 0.25),
+                        blurRadius: 28,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Icon(Icons.hub_outlined, size: 44, color: AppTheme.accent),
-            )
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Image.asset(
+                      'assets/images/app-logo.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                )
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .scale(
                   duration: AppConstants.scanUiPulse,
@@ -72,16 +83,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             Text(
               AppConstants.appName,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
-                  ),
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Offline field link',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onSurfaceMuted,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.onSurfaceMuted),
             ),
           ],
         ),

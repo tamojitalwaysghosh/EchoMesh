@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoMesh | Communication Without Network</title>
+  <meta name="description" content="EchoMesh is a Bluetooth-based offline chat app built with Flutter + BLE. Discover nearby devices, send messages, and trigger SOS without internet, SIM, or Wi-Fi.">
+  <style>
+    :root {
+      --bg: #050608;
+      --surface: #0f131a;
+      --surface-2: #141a23;
+      --text: #f2f7ff;
+      --muted: #9aa7ba;
+      --accent: #18e1dd;
+      --accent-soft: rgba(24, 225, 221, 0.16);
+      --danger: #f33e3e;
+      --line: rgba(255, 255, 255, 0.08);
+      --radius: 16px;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at 80% 10%, rgba(24, 225, 221, 0.08), transparent 35%),
+        radial-gradient(circle at 10% 90%, rgba(243, 62, 62, 0.08), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans JP", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 360px;
+      height: 360px;
+      border-radius: 999px;
+      filter: blur(65px);
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.3;
+      animation: drift 14s ease-in-out infinite;
+    }
+
+    body::before {
+      top: -120px;
+      right: -120px;
+      background: rgba(24, 225, 221, 0.25);
+    }
+
+    body::after {
+      bottom: -140px;
+      left: -120px;
+      background: rgba(243, 62, 62, 0.2);
+      animation-delay: 2s;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .wrap {
+      width: min(1100px, 92vw);
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      background: rgba(5, 6, 8, 0.7);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .brand img {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 24px rgba(24, 225, 221, 0.35);
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 600;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(24, 225, 221, 0.5);
+      box-shadow: 0 8px 30px rgba(24, 225, 221, 0.18);
+    }
+
+    .btn-primary {
+      background: linear-gradient(120deg, #13d8d4, #21d0ca);
+      color: #021212;
+      border-color: transparent;
+      font-weight: 700;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: "";
+      position: absolute;
+      top: -60%;
+      left: -100%;
+      width: 80%;
+      height: 220%;
+      transform: rotate(20deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .btn-primary:hover::after {
+      left: 130%;
+    }
+
+    .hero {
+      padding: 72px 0 44px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 34px;
+      align-items: center;
+    }
+
+    .kicker {
+      color: var(--accent);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.7rem);
+      line-height: 1.04;
+      margin: 0 0 16px;
+      font-weight: 800;
+    }
+
+    .gradient {
+      background: linear-gradient(100deg, #f1f6ff, #9ffff6 55%, #27d9d2);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.75;
+      max-width: 58ch;
+      margin: 0;
+    }
+
+    .hero-actions {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #d6e4f6;
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--danger);
+      box-shadow: 0 0 10px rgba(243, 62, 62, 0.6);
+      animation: blink 1.2s infinite ease-in-out;
+    }
+
+    .card-glow {
+      background: linear-gradient(180deg, var(--surface-2), #0b1017);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      animation: float 5.2s ease-in-out infinite;
+    }
+
+    .card-glow::after {
+      content: "";
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      right: -70px;
+      top: -70px;
+      background: radial-gradient(circle, rgba(24, 225, 221, 0.2), transparent 65%);
+      pointer-events: none;
+    }
+
+    .card-glow img {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section {
+      padding: 40px 0;
+    }
+
+    .section-head {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      letter-spacing: 0.01em;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      margin: 0;
+      max-width: 60ch;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .feature {
+      border: 1px solid var(--line);
+      background: #0d1219;
+      border-radius: var(--radius);
+      padding: 16px;
+      min-height: 135px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .feature:hover {
+      transform: translateY(-4px);
+      border-color: rgba(24, 225, 221, 0.38);
+    }
+
+    .feature b {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.03rem;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.93rem;
+    }
+
+    .shots {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .shot {
+      border: 1px solid var(--line);
+      background: #0b1017;
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      animation: fadeUp 700ms ease both;
+    }
+
+    .shot:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 18px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .shot img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 9 / 19.5;
+      object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+
+    .shot:hover img {
+      transform: scale(1.03);
+    }
+
+    .shot span {
+      display: block;
+      padding: 10px 12px;
+      color: #c3cfde;
+      font-size: 0.88rem;
+      border-top: 1px solid var(--line);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .download {
+      margin: 48px 0 78px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(140deg, rgba(24, 225, 221, 0.08), rgba(24, 225, 221, 0.03), rgba(243, 62, 62, 0.05));
+      padding: 28px;
+      display: grid;
+      gap: 12px;
+      justify-items: start;
+    }
+
+    .download h3 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2.6vw, 1.8rem);
+    }
+
+    .download p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 66ch;
+      line-height: 1.6;
+    }
+
+    .story {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #0b1016, #080c11);
+      border-radius: 20px;
+      padding: 22px;
+      color: #d5e0ef;
+      line-height: 1.75;
+    }
+
+    .story p {
+      margin: 0 0 14px;
+    }
+
+    .story p:last-child {
+      margin-bottom: 0;
+    }
+
+    .quote {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-left: 2px solid var(--accent);
+      background: rgba(24, 225, 221, 0.08);
+      border-radius: 8px;
+      color: #e5f5ff;
+      font-style: italic;
+    }
+
+    .status {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .status-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #0c1118;
+      padding: 16px;
+    }
+
+    .status-card b {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .status-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.92rem;
+    }
+
+    .contact-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      color: #89a0b8;
+      font-size: 0.85rem;
+      padding: 16px 0 28px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 500ms ease, transform 500ms ease;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      50% { transform: translateY(20px) translateX(-16px); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+
+    @media (max-width: 980px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .features,
+      .shots,
+      .status {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .hero {
+        padding-top: 42px;
+      }
+
+      .card-glow {
+        padding: 14px;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .features,
+      .shots,
+      .status {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#">
+        <img src="../assets/images/app-logo.png" alt="EchoMesh logo">
+        <span>EchoMesh</span>
+      </a>
+      <a class="btn" href="#download">Get APK</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <p class="kicker reveal">Bluetooth Offline Messaging</p>
+        <h1 class="reveal">
+          <span class="gradient">When signal disappears,</span><br>
+          communication should not.
+        </h1>
+        <p class="lead reveal">
+          EchoMesh is a Flutter + BLE app that lets nearby devices discover each other and exchange messages directly.
+          No internet, no SIM, no Wi-Fi. Just local communication that works in real field conditions.
+        </p>
+        <div class="hero-meta reveal">
+          <span class="pill"><span class="pill-dot"></span>Beta Release</span>
+          <span class="pill">Not on Play Store yet</span>
+          <span class="pill">Seeking Real-World Impact Feedback</span>
+        </div>
+        <div class="hero-actions reveal">
+          <a class="btn btn-primary" href="https://drive.google.com/file/d/1G9Izqmj2A7bE1ZmtFM2Kmsl93jCsBNlz/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+            Download APK
+          </a>
+          <a class="btn" href="#background">Background</a>
+          <a class="btn" href="#screens">View Screens</a>
+        </div>
+      </div>
+      <div class="card-glow reveal">
+        <img src="../assets/images/home-screen.png" alt="EchoMesh Home Screen">
+      </div>
+    </section>
+
+    <section id="background" class="section">
+      <div class="section-head reveal">
+        <h2 class="section-title">The Story Behind EchoMesh</h2>
+      </div>
+      <article class="story reveal">
+        <p>
+          Most of us only notice how internet-dependent communication is when the internet suddenly disappears.
+          During a trip to Sikkim, this became very real.
+        </p>
+        <p>
+          At first, disconnecting from the network felt peaceful. But one question stayed:
+          what about people who actually live there, or hikers, rescue teams, and travelers moving through no-signal zones?
+        </p>
+        <p>
+          It felt strange that two people can stand close to each other, yet their phones still depend on a far-away cellular tower to exchange a message.
+        </p>
+        <p class="quote">"Why can't nearby phones just talk to each other directly?"</p>
+      </article>
+    </section>
+
+    <section class="section">
+      <div class="section-head reveal">
+        <h2 class="section-title">How EchoMesh Works</h2>
+      </div>
+      <div class="features">
+        <article class="feature reveal">
+          <b>Bluetooth Only</b>
+          <p>No internet, no SIM, and no Wi-Fi needed for nearby communication.</p>
+        </article>
+        <article class="feature reveal">
+          <b>Dual Device Role</b>
+          <p>Each phone acts as both a scanner and a host node in the network.</p>
+        </article>
+        <article class="feature reveal">
+          <b>MVP Today</b>
+          <p>Direct peer messaging over BLE using GATT characteristics and JSON payloads.</p>
+        </article>
+        <article class="feature reveal">
+          <b>Mesh Vision</b>
+          <p>Future message-hop routing: A -> B -> C when direct reach is not possible.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head reveal">
+        <h2 class="section-title">Current Stage</h2>
+        <p class="section-sub">This is a beta launch to evaluate whether offline-first communication can make practical impact in real no-network settings.</p>
+      </div>
+      <div class="status">
+        <article class="status-card reveal">
+          <b>Beta Build</b>
+          <p>EchoMesh is currently in beta and shared as an APK for early testing.</p>
+        </article>
+        <article class="status-card reveal">
+          <b>Distribution</b>
+          <p>Not available on Play Store yet. Install through the Drive download link below.</p>
+        </article>
+        <article class="status-card reveal">
+          <b>Roadmap Focus</b>
+          <p>Range reliability, stronger transport stability, and end-to-end encryption.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="screens" class="section">
+      <div class="section-head reveal">
+        <h2 class="section-title">App Mockups</h2>
+        <p class="section-sub">A quick look at operations, nearby devices, secure chat, and emergency SOS workflows.</p>
+      </div>
+      <div class="shots">
+        <article class="shot" style="animation-delay: 50ms;">
+          <img src="../assets/images/home-screen.png" alt="Home screen mockup">
+          <span>Operations</span>
+        </article>
+        <article class="shot" style="animation-delay: 120ms;">
+          <img src="../assets/images/nearby-screen.png" alt="Nearby devices mockup">
+          <span>Nearby Devices</span>
+        </article>
+        <article class="shot" style="animation-delay: 190ms;">
+          <img src="../assets/images/chat-screen.png" alt="Chat screen mockup">
+          <span>Secure Chat</span>
+        </article>
+        <article class="shot" style="animation-delay: 260ms;">
+          <img src="../assets/images/sos-screen.png" alt="SOS screen mockup">
+          <span>SOS Broadcast</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="download" class="download reveal">
+      <h3>Download EchoMesh (APK)</h3>
+      <p>
+        This beta release is meant to validate real-world usefulness: can offline local communication improve safety and coordination when network fails?
+        Your usage and feedback will help decide how far EchoMesh can go.
+      </p>
+      <a class="btn btn-primary" href="https://drive.google.com/file/d/1G9Izqmj2A7bE1ZmtFM2Kmsl93jCsBNlz/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+        Open Drive Download
+      </a>
+      <div class="contact-row">
+        <a class="btn" href="mailto:rhobustdev@gmail.com">Contact: rhobustdev@gmail.com</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      EchoMesh • Built in Flutter + BLE for offline field communication • Beta.
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+        }
+      });
+    }, { threshold: 0.16 });
+
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+  </script>
+</body>
+</html>
